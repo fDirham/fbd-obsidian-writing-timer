@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "fbd-writing-stats",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "Keep track of how much you are writing.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {

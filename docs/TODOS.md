@@ -1,0 +1,8 @@
+-   [x] Find out what that word count thing is called and add button
+-   [x] Open pop up when pressed
+-   [x] Find a way to show count down
+-   [x] Pause and resume count down
+-   [ ] Localize count down per document
+-   [ ] Save and show word count
+-   [ ] Remove seconds
+-   [ ] Publish
