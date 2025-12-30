@@ -1,17 +1,11 @@
-import {
-	App,
-	Editor,
-	MarkdownView,
-	Modal,
-	Notice,
-	Plugin,
-	Setting,
-} from "obsidian";
+import { Notice, Plugin } from "obsidian";
 import {
 	DEFAULT_SETTINGS,
 	MyPluginSettings,
 	SampleSettingTab,
 } from "./settings";
+import RunningSessionModal from "modals/RunningSessionModal";
+import NewSessionModal from "modals/NewSessionModal";
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
@@ -43,7 +37,13 @@ export default class MyPlugin extends Plugin {
 
 	private onTimerSbPress = () => {
 		if (this.isTimerRunning) {
-			this.runningSessionModal = new RunningSessionModal(this.app, this);
+			this.runningSessionModal = new RunningSessionModal(
+				this.app,
+				this.isTimerPaused,
+				this.resumeTimer,
+				this.pauseTimer,
+				this.stopTimer
+			);
 			this.runningSessionModal.open();
 			return;
 		}
@@ -59,6 +59,8 @@ export default class MyPlugin extends Plugin {
 			this.startCountdown();
 		}).open();
 	};
+
+	// MARK: Countdown Logic
 
 	private startCountdown = () => {
 		this.clearCountdown();
@@ -178,109 +180,5 @@ export default class MyPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-	}
-}
-
-class NewSessionModal extends Modal {
-	constructor(app: App, private onStart: (durationS: number) => void) {
-		super(app);
-	}
-
-	onOpen() {
-		this.setTitle("Writing Session");
-
-		let { contentEl } = this;
-
-		let hours = 0;
-		let minutes = 0;
-		let seconds = 0;
-		new Setting(contentEl)
-			.setName("Duration")
-			.addText((text) => {
-				text.inputEl.setAttribute("type", "number");
-				text.inputEl.addClass("fbd-writing-stats__time-input");
-
-				text.setPlaceholder("h").onChange((value) => {
-					hours = parseInt(value);
-				});
-				text.inputEl.insertAdjacentHTML("afterend", "<span>:</span>");
-			})
-			.addText((text) => {
-				text.inputEl.setAttribute("type", "number");
-				text.inputEl.addClass("fbd-writing-stats__time-input");
-
-				text.setPlaceholder("m").onChange((value) => {
-					minutes = parseInt(value);
-				});
-				text.inputEl.insertAdjacentHTML("afterend", "<span>:</span>");
-			})
-			.addText((text) => {
-				text.inputEl.setAttribute("type", "number");
-				text.inputEl.addClass("fbd-writing-stats__time-input");
-
-				text.setPlaceholder("s").onChange((value) => {
-					seconds = parseInt(value);
-				});
-			});
-
-		new Setting(contentEl).addButton((button) => {
-			button.setButtonText("Start Session").onClick(() => {
-				const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-				if (isNaN(totalSeconds) || totalSeconds <= 0) {
-					new Notice("Please enter a valid duration.");
-					return;
-				}
-				if (totalSeconds > 99 * 3600) {
-					new Notice("Duration cannot exceed 99 hours.");
-					return;
-				}
-
-				this.onStart(totalSeconds);
-				this.close();
-			});
-		});
-	}
-
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
-	}
-}
-
-class RunningSessionModal extends Modal {
-	constructor(app: App, private plugin: MyPlugin) {
-		super(app);
-	}
-
-	onOpen() {
-		this.setTitle("Running Session");
-
-		const { contentEl } = this;
-		contentEl.empty();
-
-		const buttonContainer = new Setting(contentEl);
-
-		buttonContainer.addButton((button) => {
-			if (this.plugin.isTimerPaused) {
-				button.setButtonText("Play").onClick(() => {
-					this.plugin.resumeTimer();
-				});
-			} else {
-				button.setButtonText("Pause").onClick(() => {
-					this.plugin.pauseTimer();
-				});
-			}
-		});
-
-		buttonContainer.addButton((button) => {
-			button.setButtonText("Stop").onClick(() => {
-				this.plugin.stopTimer();
-			});
-		});
-	}
-
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
 	}
 }
