@@ -1,3 +1,26 @@
+:root {
+	--fbd-writing-stats__color-danger: #ea6f6d;
+	--fbd-writing-stats__color-danger__text: #ffffff;
+}
+
+.theme-dark {
+	--fbd-writing-stats__color-danger: #c62828;
+	--fbd-writing-stats__color-danger__text: #ffffff;
+}
+
+.fbd-writing-stats__running-button-container .setting-item-info {
+	display: none !important;
+}
+
+.fbd-writing-stats__running-button-container .setting-item-control button {
+	width: 48% !important;
+}
+
+.fbd-writing-stats__running-stop-button {
+	background-color: var(--fbd-writing-stats__color-danger) !important;
+	color: var(--fbd-writing-stats__color-danger__text) !important;
+}
+
 .fbd-writing-stats__time-input {
 	width: 45px;
 }

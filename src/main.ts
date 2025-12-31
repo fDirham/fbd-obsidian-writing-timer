@@ -15,6 +15,7 @@ export default class MyPlugin extends Plugin {
 	timerSbSpanEl: HTMLElement;
 	isTimerRunning: boolean = false;
 	isTimerPaused: boolean = false;
+	timerStartDate: Date | null = null;
 	timerEndDate: Date | null = null;
 	timerIntervalId: number | null = null;
 	countdownMs: number = 0;
@@ -43,14 +44,7 @@ export default class MyPlugin extends Plugin {
 
 	private onTimerSbPress = () => {
 		if (this.isTimerRunning) {
-			this.runningSessionModal = new RunningSessionModal(
-				this.app,
-				this.isTimerPaused,
-				this.resumeTimer,
-				this.pauseTimer,
-				this.stopTimer
-			);
-			this.runningSessionModal.open();
+			this.openRunningSessionModal();
 			return;
 		}
 
@@ -69,24 +63,6 @@ export default class MyPlugin extends Plugin {
 			}
 		);
 		newSessionModal.open();
-	};
-
-	private getListeningFileData = (): ListeningFileData | null => {
-		const activeFile = this.app.workspace.getActiveFile();
-		if (activeFile) {
-			const activeView =
-				this.app.workspace.getActiveViewOfType(MarkdownView);
-			const content = activeView?.editor?.getValue() || "";
-			const wordCount = getWordCount(content);
-
-			return {
-				fileName: activeFile.name,
-				filePath: activeFile.path,
-				initialWordCount: wordCount,
-			};
-		} else {
-			return null;
-		}
 	};
 
 	// MARK: Countdown Logic
@@ -158,6 +134,7 @@ export default class MyPlugin extends Plugin {
 		this.isTimerPaused = false;
 		this.timerRunElapsedMs = 0;
 		this.countdownMs = durationS * 1000;
+		this.timerStartDate = new Date();
 		this.timerEndDate = new Date(new Date().getTime() + durationS * 1000);
 
 		this.startCountdown();
@@ -170,7 +147,10 @@ export default class MyPlugin extends Plugin {
 		this.clearCountdown();
 		this.displaySbPaused(this.countdownMs);
 
-		this.runningSessionModal?.onOpen();
+		if (this.runningSessionModal) {
+			this.runningSessionModal.close();
+			this.openRunningSessionModal();
+		}
 	};
 
 	resumeTimer = () => {
@@ -181,7 +161,10 @@ export default class MyPlugin extends Plugin {
 		this.isTimerPaused = false;
 		this.startCountdown();
 
-		this.runningSessionModal?.onOpen();
+		if (this.runningSessionModal) {
+			this.runningSessionModal.close();
+			this.openRunningSessionModal();
+		}
 	};
 
 	stopTimer = async () => {
@@ -207,6 +190,7 @@ export default class MyPlugin extends Plugin {
 		this.isTimerRunning = false;
 		this.isTimerPaused = false;
 		this.timerEndDate = null;
+		this.timerStartDate = null;
 		this.countdownMs = 0;
 		this.listeningFileData = null;
 		this.timerRunElapsedMs = 0;
@@ -226,6 +210,39 @@ export default class MyPlugin extends Plugin {
 			(await this.loadData()) as Partial<MyPluginSettings>
 		);
 	}
+
+	// MARK: Modal Helpers
+	private openRunningSessionModal = () => {
+		this.runningSessionModal = new RunningSessionModal(
+			this.app,
+			this.isTimerPaused,
+			this.timerStartDate,
+			this.listeningFileData,
+			this.resumeTimer,
+			this.pauseTimer,
+			this.stopTimer
+		);
+		this.runningSessionModal.open();
+	};
+
+	// MARK: File helpers
+	private getListeningFileData = (): ListeningFileData | null => {
+		const activeFile = this.app.workspace.getActiveFile();
+		if (activeFile) {
+			const activeView =
+				this.app.workspace.getActiveViewOfType(MarkdownView);
+			const content = activeView?.editor?.getValue() || "";
+			const wordCount = getWordCount(content);
+
+			return {
+				fileName: activeFile.name,
+				filePath: activeFile.path,
+				initialWordCount: wordCount,
+			};
+		} else {
+			return null;
+		}
+	};
 
 	async saveSettings() {
 		await this.saveData(this.settings);
