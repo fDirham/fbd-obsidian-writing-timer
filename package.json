@@ -1,7 +1,7 @@
 {
-	"name": "fbd-writing-stats",
+	"name": "fbd-writing-timer",
 	"version": "1.0.0",
-	"description": "Keep track of how much you are writing.",
+	"description": "Timer and word count plugin for writing sessions.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
