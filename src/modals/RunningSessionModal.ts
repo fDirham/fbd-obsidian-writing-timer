@@ -15,7 +15,7 @@ export default class RunningSessionModal extends Modal {
 	}
 
 	onOpen() {
-		this.setTitle("Running Session");
+		this.setTitle("Running session");
 
 		const { contentEl } = this;
 		contentEl.empty();

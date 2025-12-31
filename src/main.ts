@@ -1,17 +1,11 @@
 import { MarkdownView, Notice, Plugin, TFile } from "obsidian";
-import {
-	DEFAULT_SETTINGS,
-	MyPluginSettings,
-	SampleSettingTab,
-} from "./settings";
 import RunningSessionModal from "modals/RunningSessionModal";
 import NewSessionModal from "modals/NewSessionModal";
 import ListeningFileData from "model/ListeningFileData";
 import SessionSummary from "model/SessionSummary";
 import { getTimeDisplayString, getWordCount } from "utils";
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class FbdWritingTimerPlugin extends Plugin {
 	timerSbSpanEl: HTMLElement;
 	isTimerRunning: boolean = false;
 	isTimerPaused: boolean = false;
@@ -25,8 +19,6 @@ export default class MyPlugin extends Plugin {
 	lastSessionSummary: SessionSummary | null = null;
 
 	async onload() {
-		await this.loadSettings();
-
 		const timerSbItemEl = this.addStatusBarItem();
 		const sbButtonEl = timerSbItemEl.createEl("button");
 		this.timerSbSpanEl = sbButtonEl.createEl("span");
@@ -35,9 +27,6 @@ export default class MyPlugin extends Plugin {
 		sbButtonEl.onClickEvent(() => {
 			this.onTimerSbPress();
 		});
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
 	}
 
 	onunload() {}
@@ -70,7 +59,7 @@ export default class MyPlugin extends Plugin {
 	private startCountdown = () => {
 		this.clearCountdown();
 
-		const countdownLogic = () => {
+		const countdownLogic = async () => {
 			if (
 				!this.isTimerRunning ||
 				!this.timerEndDate ||
@@ -82,7 +71,7 @@ export default class MyPlugin extends Plugin {
 			const diffMs = this.timerEndDate.getTime() - now.getTime();
 
 			if (diffMs <= 0) {
-				this.stopTimer();
+				await this.stopTimer();
 				this.displaySbDone();
 				new Notice("Writing session ended!");
 				return;
@@ -96,10 +85,10 @@ export default class MyPlugin extends Plugin {
 		};
 
 		this.timerIntervalId = window.setInterval(() => {
-			countdownLogic();
+			void countdownLogic();
 		}, 1000);
 
-		countdownLogic();
+		void countdownLogic();
 	};
 
 	private clearCountdown = () => {
@@ -119,7 +108,7 @@ export default class MyPlugin extends Plugin {
 	};
 
 	private displaySbDone = () => {
-		this.timerSbSpanEl.setText("⏰ Session ended");
+		this.timerSbSpanEl.setText("⏰ session ended");
 	};
 
 	private displaySbPaused = (ms: number) => {
@@ -203,14 +192,6 @@ export default class MyPlugin extends Plugin {
 		}
 	};
 
-	async loadSettings() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			(await this.loadData()) as Partial<MyPluginSettings>
-		);
-	}
-
 	// MARK: Modal Helpers
 	private openRunningSessionModal = () => {
 		this.runningSessionModal = new RunningSessionModal(
@@ -220,7 +201,7 @@ export default class MyPlugin extends Plugin {
 			this.listeningFileData,
 			this.resumeTimer,
 			this.pauseTimer,
-			this.stopTimer
+			() => void this.stopTimer()
 		);
 		this.runningSessionModal.open();
 	};
@@ -243,8 +224,4 @@ export default class MyPlugin extends Plugin {
 			return null;
 		}
 	};
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
 }

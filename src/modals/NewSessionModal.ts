@@ -14,7 +14,7 @@ export default class NewSessionModal extends Modal {
 	}
 
 	onOpen() {
-		this.setTitle("New Writing Session");
+		this.setTitle("New writing session");
 
 		let { contentEl } = this;
 
@@ -28,24 +28,24 @@ export default class NewSessionModal extends Modal {
 				text.inputEl.setAttribute("type", "number");
 				text.inputEl.addClass("fbd-writing-stats__time-input");
 
-				text.setPlaceholder("h").onChange((value) => {
+				text.setPlaceholder("Hours").onChange((value) => {
 					hours = parseInt(value);
 				});
-				text.inputEl.insertAdjacentHTML("afterend", "<span>:</span>");
+				text.inputEl.parentElement!.createEl("span", { text: ":" });
 			})
 			.addText((text) => {
 				text.inputEl.setAttribute("type", "number");
 				text.inputEl.addClass("fbd-writing-stats__time-input");
 
-				text.setPlaceholder("m").onChange((value) => {
+				text.setPlaceholder("Min").onChange((value) => {
 					minutes = parseInt(value);
 				});
-				text.inputEl.insertAdjacentHTML("afterend", "<span>:</span>");
+				text.inputEl.parentElement!.createEl("span", { text: ":" });
 			})
 			.addButton((button) => {
 				button
 					.setCta()
-					.setButtonText("Start Session")
+					.setButtonText("Start session")
 					.onClick(() => {
 						const totalSeconds =
 							hours * 3600 + minutes * 60 + seconds;
@@ -68,7 +68,7 @@ export default class NewSessionModal extends Modal {
 				this.lastSessionSummary.timeElapsedMs
 			);
 
-			new Setting(contentEl).setHeading().setName("Last Session Summary");
+			new Setting(contentEl).setHeading().setName("Last session summary");
 
 			const numWordsWritten =
 				this.lastSessionSummary.finalWordCount -
