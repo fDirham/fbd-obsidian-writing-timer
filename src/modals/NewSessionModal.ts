@@ -1,12 +1,20 @@
+import ListeningFileData from "model/ListeningFileData";
+import SessionSummary from "model/SessionSummary";
 import { App, Modal, Notice, Setting } from "obsidian";
+import { getTimeDisplayString } from "utils";
 
 export default class NewSessionModal extends Modal {
-	constructor(app: App, private onStart: (durationS: number) => void) {
+	constructor(
+		app: App,
+		private listeningFileData: ListeningFileData,
+		private lastSessionSummary: SessionSummary | null,
+		private onStart: (durationS: number) => void
+	) {
 		super(app);
 	}
 
 	onOpen() {
-		this.setTitle("Writing Session");
+		this.setTitle("New Writing Session");
 
 		let { contentEl } = this;
 
@@ -15,6 +23,7 @@ export default class NewSessionModal extends Modal {
 		let seconds = 0;
 		new Setting(contentEl)
 			.setName("Duration")
+			.setDesc(`File: ${this.listeningFileData.fileName}`)
 			.addText((text) => {
 				text.inputEl.setAttribute("type", "number");
 				text.inputEl.addClass("fbd-writing-stats__time-input");
@@ -40,24 +49,49 @@ export default class NewSessionModal extends Modal {
 				text.setPlaceholder("s").onChange((value) => {
 					seconds = parseInt(value);
 				});
+			})
+			.addButton((button) => {
+				button
+					.setCta()
+					.setButtonText("Start Session")
+					.onClick(() => {
+						const totalSeconds =
+							hours * 3600 + minutes * 60 + seconds;
+						if (isNaN(totalSeconds) || totalSeconds <= 0) {
+							new Notice("Please enter a valid duration.");
+							return;
+						}
+						if (totalSeconds > 99 * 3600) {
+							new Notice("Duration cannot exceed 99 hours.");
+							return;
+						}
+
+						this.onStart(totalSeconds);
+						this.close();
+					});
 			});
 
-		new Setting(contentEl).addButton((button) => {
-			button.setButtonText("Start Session").onClick(() => {
-				const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-				if (isNaN(totalSeconds) || totalSeconds <= 0) {
-					new Notice("Please enter a valid duration.");
-					return;
-				}
-				if (totalSeconds > 99 * 3600) {
-					new Notice("Duration cannot exceed 99 hours.");
-					return;
-				}
+		if (this.lastSessionSummary) {
+			const durationString = getTimeDisplayString(
+				this.lastSessionSummary.timeElapsedMs
+			);
 
-				this.onStart(totalSeconds);
-				this.close();
-			});
-		});
+			new Setting(contentEl).setHeading().setName("Last Session Summary");
+
+			const numWordsWritten =
+				this.lastSessionSummary.finalWordCount -
+				this.lastSessionSummary.listeningFileData.initialWordCount;
+			const wpm = Math.round(
+				(numWordsWritten /
+					(this.lastSessionSummary.timeElapsedMs / 1000)) *
+					60
+			);
+			new Setting(contentEl)
+				.setName("Words Written: " + numWordsWritten)
+				.setDesc(`WPM: ${wpm}`);
+
+			new Setting(contentEl).setName("Duration: " + durationString);
+		}
 	}
 
 	onClose() {

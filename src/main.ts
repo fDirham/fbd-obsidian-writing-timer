@@ -1,4 +1,4 @@
-import { Notice, Plugin } from "obsidian";
+import { MarkdownView, Notice, Plugin, TFile } from "obsidian";
 import {
 	DEFAULT_SETTINGS,
 	MyPluginSettings,
@@ -6,6 +6,9 @@ import {
 } from "./settings";
 import RunningSessionModal from "modals/RunningSessionModal";
 import NewSessionModal from "modals/NewSessionModal";
+import ListeningFileData from "model/ListeningFileData";
+import SessionSummary from "model/SessionSummary";
+import { getTimeDisplayString, getWordCount } from "utils";
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
@@ -15,7 +18,10 @@ export default class MyPlugin extends Plugin {
 	timerEndDate: Date | null = null;
 	timerIntervalId: number | null = null;
 	countdownMs: number = 0;
+	timerRunElapsedMs: number = 0;
 	runningSessionModal: RunningSessionModal | null = null;
+	listeningFileData: ListeningFileData | null = null;
+	lastSessionSummary: SessionSummary | null = null;
 
 	async onload() {
 		await this.loadSettings();
@@ -48,16 +54,39 @@ export default class MyPlugin extends Plugin {
 			return;
 		}
 
-		new NewSessionModal(this.app, (durationS) => {
-			this.isTimerRunning = true;
-			this.isTimerPaused = false;
-			this.countdownMs = durationS * 1000;
-			this.timerEndDate = new Date(
-				new Date().getTime() + durationS * 1000
-			);
+		this.listeningFileData = this.getListeningFileData();
+		if (!this.listeningFileData) {
+			new Notice("Please open a file to start a writing session.");
+			return;
+		}
 
-			this.startCountdown();
-		}).open();
+		const newSessionModal = new NewSessionModal(
+			this.app,
+			this.listeningFileData,
+			this.lastSessionSummary,
+			(durationS) => {
+				this.startTimer(durationS);
+			}
+		);
+		newSessionModal.open();
+	};
+
+	private getListeningFileData = (): ListeningFileData | null => {
+		const activeFile = this.app.workspace.getActiveFile();
+		if (activeFile) {
+			const activeView =
+				this.app.workspace.getActiveViewOfType(MarkdownView);
+			const content = activeView?.editor?.getValue() || "";
+			const wordCount = getWordCount(content);
+
+			return {
+				fileName: activeFile.name,
+				filePath: activeFile.path,
+				initialWordCount: wordCount,
+			};
+		} else {
+			return null;
+		}
 	};
 
 	// MARK: Countdown Logic
@@ -77,16 +106,15 @@ export default class MyPlugin extends Plugin {
 			const diffMs = this.timerEndDate.getTime() - now.getTime();
 
 			if (diffMs <= 0) {
-				this.isTimerRunning = false;
-				this.timerEndDate = null;
+				this.stopTimer();
 				this.displaySbDone();
 				new Notice("Writing session ended!");
-
-				this.clearCountdown();
 				return;
 			}
 
 			// Calculate remaining time
+			const diffFromPrevious = this.countdownMs - diffMs;
+			this.timerRunElapsedMs += diffFromPrevious;
 			this.countdownMs = diffMs;
 			this.displaySbTime(diffMs);
 		};
@@ -106,21 +134,8 @@ export default class MyPlugin extends Plugin {
 	};
 
 	// MARK: Displays
-
 	private displaySbTime = (ms: number) => {
-		const diffSecondsTotal = Math.floor(ms / 1000);
-		const diffHours = String(Math.floor(diffSecondsTotal / 3600)).padStart(
-			2,
-			"0"
-		);
-		const diffMinutes = String(
-			Math.floor((diffSecondsTotal % 3600) / 60)
-		).padStart(2, "0");
-		const diffSeconds = String(diffSecondsTotal % 60).padStart(2, "0");
-
-		this.timerSbSpanEl.setText(
-			`⌛️ ${diffHours}:${diffMinutes}:${diffSeconds}`
-		);
+		this.timerSbSpanEl.setText(`⌛️ ${getTimeDisplayString(ms)}`);
 	};
 
 	private displaySbDefault = () => {
@@ -131,16 +146,29 @@ export default class MyPlugin extends Plugin {
 		this.timerSbSpanEl.setText("⏰ Session ended");
 	};
 
-	private displaySbPaused = () => {
-		this.timerSbSpanEl.setText("⏸ Paused");
+	private displaySbPaused = (ms: number) => {
+		this.timerSbSpanEl.setText(`⏸ ${getTimeDisplayString(ms)}`);
 	};
 
 	// MARK: Timer Controls
+	startTimer = (durationS: number) => {
+		if (this.isTimerRunning && !this.isTimerPaused) return;
+
+		this.isTimerRunning = true;
+		this.isTimerPaused = false;
+		this.timerRunElapsedMs = 0;
+		this.countdownMs = durationS * 1000;
+		this.timerEndDate = new Date(new Date().getTime() + durationS * 1000);
+
+		this.startCountdown();
+	};
+
 	pauseTimer = () => {
 		if (!this.isTimerRunning || this.isTimerPaused) return;
 
 		this.isTimerPaused = true;
 		this.clearCountdown();
+		this.displaySbPaused(this.countdownMs);
 
 		this.runningSessionModal?.onOpen();
 	};
@@ -156,11 +184,32 @@ export default class MyPlugin extends Plugin {
 		this.runningSessionModal?.onOpen();
 	};
 
-	stopTimer = () => {
+	stopTimer = async () => {
+		if (this.listeningFileData) {
+			const file = this.app.vault.getAbstractFileByPath(
+				this.listeningFileData.filePath
+			);
+			let finalWordCount = 0;
+
+			if (file instanceof TFile) {
+				const content = await this.app.vault.read(file);
+				finalWordCount = getWordCount(content);
+			}
+
+			const summary: SessionSummary = {
+				listeningFileData: this.listeningFileData,
+				timeElapsedMs: this.timerRunElapsedMs,
+				finalWordCount: finalWordCount,
+			};
+			this.lastSessionSummary = summary;
+		}
+
 		this.isTimerRunning = false;
 		this.isTimerPaused = false;
 		this.timerEndDate = null;
 		this.countdownMs = 0;
+		this.listeningFileData = null;
+		this.timerRunElapsedMs = 0;
 		this.clearCountdown();
 		this.displaySbDefault();
 
