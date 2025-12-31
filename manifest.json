@@ -6,5 +6,6 @@
 	"description": "Timer and word count plugin for writing sessions.",
 	"author": "Fajar Dirham",
 	"authorUrl": "https://fajardirham.com",
-	"isDesktopOnly": true
+	"isDesktopOnly": true,
+	"fundingUrl": "https://buymeacoffee.com/fbd117"
 }
