@@ -4,6 +4,6 @@
 -   [x] Pause and resume count down
 -   [x] Localize count down per document
 -   [x] Save and show word count
--   [ ] Style running modal
--   [ ] Remove seconds
+-   [x] Style running modal
+-   [x] Remove seconds
 -   [ ] Publish

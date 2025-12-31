@@ -42,14 +42,6 @@ export default class NewSessionModal extends Modal {
 				});
 				text.inputEl.insertAdjacentHTML("afterend", "<span>:</span>");
 			})
-			.addText((text) => {
-				text.inputEl.setAttribute("type", "number");
-				text.inputEl.addClass("fbd-writing-stats__time-input");
-
-				text.setPlaceholder("s").onChange((value) => {
-					seconds = parseInt(value);
-				});
-			})
 			.addButton((button) => {
 				button
 					.setCta()

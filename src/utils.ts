@@ -7,9 +7,8 @@ export const getTimeDisplayString = (ms: number): string => {
 	const diffMinutes = String(
 		Math.floor((diffSecondsTotal % 3600) / 60)
 	).padStart(2, "0");
-	const diffSeconds = String(diffSecondsTotal % 60).padStart(2, "0");
 
-	return `${diffHours}:${diffMinutes}:${diffSeconds}`;
+	return `${diffHours}:${diffMinutes}`;
 };
 
 export const getWordCount = (text: string): number => {
