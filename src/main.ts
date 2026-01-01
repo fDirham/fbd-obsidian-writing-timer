@@ -18,7 +18,7 @@ export default class FbdWritingTimerPlugin extends Plugin {
 	listeningFileData: ListeningFileData | null = null;
 	lastSessionSummary: SessionSummary | null = null;
 
-	async onload() {
+	onload() {
 		const timerSbItemEl = this.addStatusBarItem();
 		const sbButtonEl = timerSbItemEl.createEl("button");
 		this.timerSbSpanEl = sbButtonEl.createEl("span");
